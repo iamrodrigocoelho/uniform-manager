@@ -1,0 +1,89 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Colaborador {
+  id              Int      @id @default(autoincrement())
+  matricula       String   @unique
+  cpf             String   @unique
+  nome            String
+  cargo           String
+  empresa         String?
+  area            String?
+  emailCorp       String?
+  telefonePessoal String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  pedidos         Pedido[]
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  usuario   String   @unique
+  senhaHash String
+  nome      String
+  perfil    String   @default("rh")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model TipoItem {
+  id          Int              @id @default(autoincrement())
+  nome        String           @unique
+  ativo       Boolean          @default(true)
+  tamanhos    String[]
+  createdAt   DateTime         @default(now())
+  estoque     Estoque[]
+  regras      RegraConcessao[]
+  itensPedido ItemPedido[]
+}
+
+model Estoque {
+  id         Int      @id @default(autoincrement())
+  tipoItem   TipoItem @relation(fields: [tipoItemId], references: [id])
+  tipoItemId Int
+  tamanho    String
+  quantidade Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tipoItemId, tamanho])
+}
+
+model RegraConcessao {
+  id           Int      @id @default(autoincrement())
+  cargo        String
+  tipoItem     TipoItem @relation(fields: [tipoItemId], references: [id])
+  tipoItemId   Int
+  quantidade   Int
+  periodoMeses Int
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@unique([cargo, tipoItemId])
+}
+
+model Pedido {
+  id            Int         @id @default(autoincrement())
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  colaboradorId Int
+  tipo          String
+  status        String      @default("pendente")
+  observacao    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  itens         ItemPedido[]
+}
+
+model ItemPedido {
+  id         Int      @id @default(autoincrement())
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  pedidoId   Int
+  tipoItem   TipoItem @relation(fields: [tipoItemId], references: [id])
+  tipoItemId Int
+  tamanho    String
+  quantidade Int
+}
