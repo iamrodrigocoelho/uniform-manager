@@ -24,36 +24,42 @@ export async function GET() {
 
   const resultado = await Promise.all(
     regras.map(async (regra) => {
-      // Find the last "entregue" gratuito order containing this tipoItemId
-      const ultimaEntrega = await prisma.pedido.findFirst({
+      const agora = new Date();
+      const inicioPeriodo = addMonths(agora, -regra.periodoMeses);
+
+      // Busca todos os pedidos entregues no período atual para este tipo de item
+      const entregasNoPeriodo = await prisma.itemPedido.findMany({
         where: {
-          colaboradorId: colaborador.id,
-          tipo: "gratuito",
-          status: "entregue",
-          itens: {
-            some: { tipoItemId: regra.tipoItemId },
+          tipoItemId: regra.tipoItemId,
+          pedido: {
+            colaboradorId: colaborador.id,
+            tipo: "gratuito",
+            status: "entregue",
+            updatedAt: { gte: inicioPeriodo },
           },
         },
-        orderBy: { updatedAt: "desc" },
+        include: { pedido: { select: { updatedAt: true } } },
       });
 
-      let elegivel = true;
-      let proximaElegibilidade: string | null = null;
+      // Soma total entregue no período
+      const totalEntregue = entregasNoPeriodo.reduce((sum, i) => sum + i.quantidade, 0);
+      const restante = regra.quantidade - totalEntregue;
+      const elegivel = restante > 0;
 
-      if (ultimaEntrega) {
-        const dataProxima = addMonths(ultimaEntrega.updatedAt, regra.periodoMeses);
-        const agora = new Date();
-        if (dataProxima > agora) {
-          elegivel = false;
-          proximaElegibilidade = dataProxima.toISOString();
-        }
+      // Próxima elegibilidade = data da entrega mais antiga no período + periodoMeses
+      let proximaElegibilidade: string | null = null;
+      if (!elegivel && entregasNoPeriodo.length > 0) {
+        const datasMaisAntigas = entregasNoPeriodo
+          .map((i) => i.pedido.updatedAt)
+          .sort((a, b) => a.getTime() - b.getTime());
+        proximaElegibilidade = addMonths(datasMaisAntigas[0], regra.periodoMeses).toISOString();
       }
 
       return {
         tipoItemId: regra.tipoItemId,
         tipoItemNome: regra.tipoItem.nome,
         cargo: regra.cargo,
-        quantidadePermitida: regra.quantidade,
+        quantidadePermitida: elegivel ? restante : regra.quantidade,
         periodoMeses: regra.periodoMeses,
         elegivel,
         proximaElegibilidade,
