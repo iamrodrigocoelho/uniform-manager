@@ -30,8 +30,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Non-root user
-RUN addgroup --system --gid 1001 nodejs && \
+# Utilities and non-root user
+RUN apk add --no-cache netcat-openbsd && \
+    addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Next.js files

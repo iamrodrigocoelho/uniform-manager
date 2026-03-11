@@ -2,10 +2,11 @@
 set -e
 
 echo "→ Aguardando PostgreSQL ficar pronto..."
-until pg_isready -h db -U postgres 2>/dev/null; do
+until nc -z db 5432 2>/dev/null; do
   echo "  PostgreSQL ainda nao esta pronto, aguardando..."
   sleep 2
 done
+sleep 2
 
 echo "→ Aplicando migracoes do banco de dados..."
 npx prisma migrate deploy
