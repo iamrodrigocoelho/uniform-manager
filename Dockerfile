@@ -30,8 +30,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Utilities and non-root user
+# Utilities, tsx for seed scripts, and non-root user
 RUN apk add --no-cache netcat-openbsd && \
+    npm install -g tsx && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
@@ -51,6 +52,9 @@ COPY --from=builder /app/package.json ./package.json
 # Prisma schema and migrations for migrate deploy on startup
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+# Seed scripts
+COPY --from=builder /app/scripts ./scripts
 
 # Entrypoint script
 COPY docker-entrypoint.sh ./
