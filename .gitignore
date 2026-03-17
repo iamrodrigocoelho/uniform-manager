@@ -3,4 +3,6 @@ node_modules/
 *.db
 .env
 .env.local
+.env.prod
 tsconfig.tsbuildinfo
+next-env.d.ts
